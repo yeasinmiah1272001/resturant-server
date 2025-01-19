@@ -28,6 +28,7 @@ async function run() {
 
     const menuCollection = client.db("bistroBossDb").collection("menu");
     const cartsCollection = client.db("bistroBossDb").collection("carts");
+    const userCollection = client.db("bistroBossDb").collection("users");
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
@@ -60,6 +61,20 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await cartsCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // user related api
+
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email };
+      const existingUser = await userCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ message: "user already exist" });
+      }
+
+      const result = await userCollection.insertOne(user);
       res.send(result);
     });
 
