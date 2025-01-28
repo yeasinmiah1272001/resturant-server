@@ -35,6 +35,16 @@ async function run() {
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
 
+    // token releted api
+
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.SECRET_ACCEStOKEN, {
+        expiresIn: "1hr",
+      });
+      res.send({ token });
+    });
+
     app.get("/", async (req, res) => {
       res.send("resturant-running");
     });
@@ -67,6 +77,7 @@ async function run() {
 
     app.post("/users", async (req, res) => {
       const user = req.body;
+
       const query = { email: user.email };
       const existingUser = await userCollection.findOne(query);
       if (existingUser) {
@@ -79,6 +90,7 @@ async function run() {
 
     app.get("/users", async (req, res) => {
       // const user = req.body;
+      // console.log("headerd", req.headers);
       const result = await userCollection.find().toArray();
       res.send(result);
     });
