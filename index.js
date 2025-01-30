@@ -39,11 +39,41 @@ async function run() {
 
     app.post("/jwt", async (req, res) => {
       const user = req.body;
-      const token = jwt.sign(user, process.env.SECRET_ACCEStOKEN, {
+      const token = jwt.sign(user, process.env.SECRET_ACCESTOKEN, {
         expiresIn: "1hr",
       });
       res.send({ token });
     });
+
+    // Verify the token
+
+    const veryfyToken = (req, res, next) => {
+      console.log("inside veryfied token", req.headers.authorization);
+      if (!req.headers.authorization) {
+        return res.status(401).send("sorry you are not  authorizaed");
+      }
+      const token = req.headers.authorization.split(" ")[1];
+      jwt.verify(token, process.env.SECRET_ACCESTOKEN, (err, decoded) => {
+        if (err) {
+          return res.status(403).send("Invalid or expired token");
+        }
+        req.decoded = decoded;
+        next();
+      });
+    };
+
+    // veyfy admin
+
+    const veryfyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const isAdmin = user?.role === "admin";
+      if (!isAdmin) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
 
     app.get("/", async (req, res) => {
       res.send("resturant-running");
@@ -88,30 +118,49 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/users", async (req, res) => {
+    app.get("/users", veryfyToken, veryfyAdmin, async (req, res) => {
       // const user = req.body;
       // console.log("headerd", req.headers);
       const result = await userCollection.find().toArray();
       res.send(result);
     });
 
-    app.delete("/users/:id", async (req, res) => {
+    app.delete("/users/:id", veryfyToken, veryfyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await userCollection.deleteOne(query);
       res.send(result);
     });
 
-    app.patch("/users/admin/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $set: {
-          role: "admin",
-        },
-      };
-      const result = await userCollection.updateOne(filter, updateDoc);
-      res.send(result);
+    app.patch(
+      "/users/admin/:id",
+      veryfyToken,
+      veryfyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            role: "admin",
+          },
+        };
+        const result = await userCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      }
+    );
+
+    app.get("/users/admin/:email", veryfyToken, async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded.email) {
+        return res.status(403).send("unauthorized access");
+      }
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      let admin = false;
+      if (user) {
+        admin = user?.role === "admin";
+      }
+      res.send({ admin });
     });
 
     app.listen(port, () => {
