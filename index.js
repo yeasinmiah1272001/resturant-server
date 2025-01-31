@@ -48,7 +48,7 @@ async function run() {
     // Verify the token
 
     const veryfyToken = (req, res, next) => {
-      console.log("inside veryfied token", req.headers.authorization);
+      // console.log("inside veryfied token", req.headers.authorization);
       if (!req.headers.authorization) {
         return res.status(401).send("sorry you are not  authorizaed");
       }
@@ -80,6 +80,12 @@ async function run() {
     });
     app.get("/menu", async (req, res) => {
       const result = await menuCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.post("/menu", async (req, res) => {
+      const item = req.body;
+      const result = await menuCollection.insertOne(item);
       res.send(result);
     });
 
