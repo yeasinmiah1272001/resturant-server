@@ -83,12 +83,22 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/menu", veryfyAdmin, veryfyToken, async (req, res) => {
+    app.get("/menu/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log("id", id);
+      const query = { _id: new ObjectId(id) };
+      console.log("query", query);
+      const result = await menuCollection.findOne(query);
+      console.log(result);
+      res.send(result);
+    });
+
+    app.post("/menu", veryfyToken, veryfyAdmin, async (req, res) => {
       const item = req.body;
       const result = await menuCollection.insertOne(item);
       res.send(result);
     });
-    app.delete("/menu/:id", veryfyAdmin, veryfyToken, async (req, res) => {
+    app.delete("/menu/:id", veryfyToken, veryfyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await menuCollection.deleteOne(query);
