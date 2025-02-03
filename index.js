@@ -84,11 +84,11 @@ async function run() {
 
     app.get("/menu/:id", async (req, res) => {
       const id = req.params.id;
-      console.log("id", id);
+      // console.log("id", id);
       const query = { _id: id };
-      console.log("query", query);
+      // console.log("query", query);
       const result = await menuCollection.findOne(query);
-      console.log("result", result);
+      // console.log("result", result);
       res.send(result);
     });
 
