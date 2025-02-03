@@ -4,6 +4,7 @@ const app = express();
 const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
 const port = process.env.PORT || 5000;
 
@@ -28,6 +29,7 @@ async function run() {
     const menuCollection = client.db("bistroBossDb").collection("menu");
     const cartsCollection = client.db("bistroBossDb").collection("carts");
     const userCollection = client.db("bistroBossDb").collection("users");
+    const paymentCollection = client.db("bistroBossDb").collection("payment");
 
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -200,6 +202,56 @@ async function run() {
         admin = user?.role === "admin";
       }
       res.send({ admin });
+    });
+
+    // payment releted api
+
+    app.post("/create-checkout-session", async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: "usd",
+          payment_method_types: ["card"],
+        });
+        res.send({
+          clientSecret: paymentIntent.client_secret,
+        });
+      } catch (error) {
+        res.status(500).send({ error: error.message });
+      }
+    });
+
+    app.post("/payment", async (req, res) => {
+      const payment = req.body;
+      console.log("payment", payment);
+      const paymentResult = await paymentCollection.insertOne(payment);
+
+      const query = {
+        _id: {
+          $in: payment.cartIds.map((id) => new ObjectId(id)),
+        },
+      };
+      const deleteResult = await cartsCollection.deleteMany(query);
+      res.send({ paymentResult, deleteResult });
+    });
+
+    // load all payment
+    app.get("/payments/:email", veryfyToken, async (req, res) => {
+      const query = { email: req.params.email };
+
+      // Correct condition for authorization check
+      if (req.params.email !== req.decoded.email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
+      try {
+        const result = await paymentCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Internal server error" });
+      }
     });
 
     app.listen(port, () => {
