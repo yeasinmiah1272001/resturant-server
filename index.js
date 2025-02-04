@@ -169,7 +169,7 @@ async function run() {
 
     app.get("/users", veryfyToken, veryfyAdmin, async (req, res) => {
       // const user = req.body;
-      // console.log("headerd", req.headers);
+
       const result = await userCollection.find().toArray();
       res.send(result);
     });
