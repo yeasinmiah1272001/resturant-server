@@ -254,6 +254,16 @@ async function run() {
       }
     });
 
+    // admin state
+    app.get("/admin-states", async (req, res) => {
+      const users = await userCollection.estimatedDocumentCount();
+      const menuItems = await menuCollection.estimatedDocumentCount();
+      const orders = await paymentCollection.estimatedDocumentCount();
+      const payment = await paymentCollection.find().toArray();
+      const revenue = payment.reduce((acc, item) => acc + item.price, 0);
+      res.send({ users, menuItems, orders, revenue });
+    });
+
     app.listen(port, () => {
       console.log(`bistro-boss-running ${port}`);
     });
